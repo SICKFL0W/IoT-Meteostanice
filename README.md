@@ -10,8 +10,8 @@ Srdcem celého systému je kompaktní mikrokontroler s Wi-Fi konektivitou, na kt
 * [cite_start]**DHT11:** Senzor pro měření aktuální teploty a vlhkosti vzduchu[cite: 80, 261].
 * [cite_start]**BMP180:** Precizní senzor měřící barometrický tlak, ze kterého je následně dopočítávána nadmořská výška[cite: 78, 273, 278].
 
-[cite_start] **Zapojení hardware** <img width="189" height="215" alt="SCR-20260511-qyix" src="https://github.com/user-attachments/assets/6da5863c-cadd-4fdb-9e56-b8ff79bbe939" />
-[cite_start] **Schéma zapojení** <img width="267" height="281" alt="SCR-20260511-qyju" src="https://github.com/user-attachments/assets/8ef3981d-474a-4778-9465-61848341ed82" />
+**Zapojení hardware:** <img width="189" height="215" alt="SCR-20260511-qyix" src="https://github.com/user-attachments/assets/6da5863c-cadd-4fdb-9e56-b8ff79bbe939" />
+**Schéma zapojení:** <img width="267" height="281" alt="SCR-20260511-qyju" src="https://github.com/user-attachments/assets/8ef3981d-474a-4778-9465-61848341ed82" />
 
 
 ## 💻 Tech Stack & Architektura toku dat
@@ -34,19 +34,19 @@ Během projektu jsem testoval a srovnával tři různé přístupy k prezentaci 
 ### 1. Grafana (Pokročilý monitoring)
 [cite_start]Grafana se ukázala jako nejlepší řešení pro komplexní dashboardy, historická data a sledování trendů díky nativnímu propojení s InfluxDB[cite: 508, 510, 511, 517].
 
-[cite_start] **Grafana Dashboard** <img width="1010" height="541" alt="SCR-20260511-qygp" src="https://github.com/user-attachments/assets/4c31d22c-831f-4274-95b7-714fbccce22b" />
+**Grafana Dashboard:** <img width="1010" height="541" alt="SCR-20260511-qygp" src="https://github.com/user-attachments/assets/4c31d22c-831f-4274-95b7-714fbccce22b" />
 *
 
 ### 2. Node-RED (Rychlé prototypování)
 [cite_start]Ideální pro jednoduchou a okamžitou vizualizaci dat v reálném čase bez nutnosti nastavovat složité databáze[cite: 490, 491, 496].
 
-[cite_start] **Node-RED flow** <img width="1092" height="471" alt="SCR-20260511-qxxy" src="https://github.com/user-attachments/assets/5ef0ef14-01bb-41ab-ae90-91f8dcf67ef1" />
+**Node-RED flow:** <img width="1092" height="471" alt="SCR-20260511-qxxy" src="https://github.com/user-attachments/assets/5ef0ef14-01bb-41ab-ae90-91f8dcf67ef1" />
 
 
 ### 3. Google Charts (Webová integrace)
 [cite_start]Skvělá volba pro embedování dat přímo do vlastních interaktivních online prezentací a webových stránek[cite: 484, 527, 532].
 
-[cite_start] **Google Charts** <img width="846" height="524" alt="SCR-20260511-qydy" src="https://github.com/user-attachments/assets/f5ab776e-0269-43de-b81c-3f3fc8aeeb35" />
+**Google Charts:** <img width="846" height="524" alt="SCR-20260511-qydy" src="https://github.com/user-attachments/assets/f5ab776e-0269-43de-b81c-3f3fc8aeeb35" />
 
 
 ---
