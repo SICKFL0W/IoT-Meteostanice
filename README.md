@@ -11,6 +11,7 @@ Srdcem celého systému je kompaktní mikrokontroler s Wi-Fi konektivitou, na kt
 * **BMP180:** Precizní senzor měřící barometrický tlak, ze kterého je následně dopočítávána nadmořská výška.
 
 **Zapojení hardware:** <img width="189" height="215" alt="SCR-20260511-qyix" src="https://github.com/user-attachments/assets/6da5863c-cadd-4fdb-9e56-b8ff79bbe939" />
+
 **Schéma zapojení:** <img width="267" height="281" alt="SCR-20260511-qyju" src="https://github.com/user-attachments/assets/8ef3981d-474a-4778-9465-61848341ed82" />
 
 
