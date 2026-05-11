@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>MTP - Vizualizace a zpracování dat v IOT</title>
+
+    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+    <!-- přídání bootstrap pro responzivnost a stylizace webu -->
+    <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
+    <!-- přídání Google Charts -->
+
+    <style>
+        body {
+            font-family: 'Roboto', sans-serif;
+            background-color: #344045;
+        }
+
+        .card {
+            margin-bottom: 30px;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            border: none;
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+            transition: transform .3s ease-in-out, box-shadow .3s ease-in-out;
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+        }
+
+        .card-header,
+        .text-primary,
+        .bg-primary {
+            background-color: #ffffff !important;
+            color: #304457 !important;
+        }
+
+        .card-body {
+            background-color: #E7DBB6;
+        }
+
+        .card-body p {
+            font-size: 18px;
+            color: #333333;
+        }
+
+        .value-card {
+            text-align: center;
+            padding: 20px;
+            border-radius: 4px;
+            background-color: #EAEDE9;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+        }
+
+        .value-card .number {
+            font-size: 50px;
+            font-weight: bold;
+            color: #333;
+        }
+
+        .value-card .description {
+            font-size: 16px;
+            color: #777;
+            margin-top: -5px;
+        }
+    </style>
+
+    <script>
+        // připojení k InfluxDB
+        const INFLUXDB_URL = 'https://eu-central-1-1.aws.cloud2.influxdata.com';
+        const ORG = '394991d067816539';
+        const TOKEN = '8KsHjFp7k5BlhU9LqTkbQbdZP81qLu0lCrf3eisKgcuWASyudIhzPbpQhsUO6QHpdWafa6gG7GMEM7_nvQ6_oA==';
+
+        // načtení Google Charts
+        google.charts.load('current', {
+            packages: ['corechart']
+        });
+
+        // definice pro kreslení grafů
+        const fields = ['teplota', 'baroTlak', 'vlhkost', 'nazev_zarizeni', 'nazev_zarizeni', 'nadmorskaVyska']; // pole s názvy polí
+        const functions = [drawTeplotaChart, drawBaroTlakChart, drawVlhkostChart, drawNazevZarizeniCard, drawSSIDCard, drawNadmorskaVyska]; // pole s funkcemi pro kreslení grafů
+
+        // nastavení funkce pro kreslení grafů pro každé pole
+        fields.forEach((field, index) => google.charts.setOnLoadCallback(drawChart(field, functions[index])));
+
+        // funkce pro načítání dat z InfluxDB
+        async function fetchData(queryField) { // asynchronní funkce pro načítání dat
+            const QUERY = `from(bucket: "MTP_Meteostanice")
+                          |> range(start: -1h)
+                          |> filter(fn: (r) => r._measurement == "weather")
+                          |> filter(fn: (r) => r._field == "${queryField}")`; // definice dotazu pro načítání dat
+            const response = await fetch(`${INFLUXDB_URL}/api/v2/query?org=${ORG}`, { // odeslání dotazu na server
+                method: 'POST',
+                headers: {
+                    'Authorization': `Token ${TOKEN}`, // autentizační token
+                    'Content-type': 'application/json', // typ obsahu
+                    'Accept': 'application/csv', // přijímaný typ obsahu
+                },
+                body: JSON.stringify({
+                    query: QUERY
+                }), // tělo dotazu
+            });
+            if (!response.ok) throw new Error(
+            `HTTP error! status: ${response.status}`); // kontrola, zda byl dotaz úspěšný
+            return await response.text(); // vrácení textu odpovědi
+        }
+
+        // funkce pro kreslení grafu
+        function drawChart(field, chartDrawFunction) { // funkce pro kreslení grafu
+            return async function () { // vrácení asynchronní funkce
+                try {
+                    const csvData = await fetchData(field); // načtení dat
+                    chartDrawFunction(csvData, field); // kreslení grafu
+                } catch (error) {
+                    console.error('Failed to fetch data:',
+                    error); // zobrazení chyby, pokud dojde k chybě při načítání dat
+                }
+            };
+        }
+
+        // objekt pro ukládání dat grafů
+        let chartsData = {};
+
+        // obecná funkce pro kreslení grafu
+        function drawGenericChart(csvData, label, unit, chartElementId, currentElementId) { // funkce pro kreslení grafu
+            if (!csvData) return; // kontrola, zda jsou data k dispozici
+            var data = new google.visualization.DataTable(); // vytvoření tabulky dat
+            data.addColumn('datetime', 'Time'); // přidání sloupce pro čas
+            data.addColumn('number', label); // přidání sloupce pro hodnotu
+
+            const rows = csvData.split('\n').slice(1); // rozdělení dat na řádky
+            const dataRows = rows.map(row => { // převedení řádků na pole dat
+                const columns = row.split(','); // rozdělení řádku na sloupce
+                const time = new Date(columns[5]); // převedení času na objekt Date
+                const value = parseFloat(columns[6]); // převedení hodnoty na číslo
+                return [time, value]; // vrácení pole s časem a hodnotou
+            }).filter(row => row[0] && !isNaN(row[1])); // filtrace řádků, které mají platný čas a hodnotu
+
+            // přidání řádků do tabulky dat
+            data.addRows(dataRows);
+
+            // nastavení grafu
+            var options = {
+                title: `${label} Chart`,
+                curveType: 'function',
+                legend: {
+                    position: 'bottom'
+                }
+            };
+
+            var chart = new google.visualization.LineChart(document.getElementById(chartElementId)); // vytvoření grafu
+            chart.draw(data, options); // kreslení grafu
+
+            var currentValue = dataRows[dataRows.length - 1][1]; // získání aktuální hodnoty
+            document.getElementById(currentElementId).innerHTML = ` 
+            <div class="number">${currentValue}${unit}</div>
+            <div class="description">Aktuální ${label}</div>
+            `;
+
+            // uložení dat grafu do objektu chartsData
+            chartsData[chartElementId] = {
+                chart,
+                data,
+                options
+            };
+        }
+
+        // Call the function to draw data count
+        google.charts.setOnLoadCallback(drawDataCount);
+
+
+        window.addEventListener('resize', () => { // přidání posluchače pro změnu velikosti okna
+            for (let chartElementId in chartsData) { // pro každý graf v objektu chartsData
+                const {
+                    chart,
+                    data,
+                    options
+                } = chartsData[chartElementId]; // získání dat grafu
+                chart.draw(data, options); // překreslení grafu
+            }
+        });
+
+        // funkce pro kreslení grafu teploty
+        function drawTeplotaChart(csvData, field) {
+            drawGenericChart(csvData, 'Teplota', ' °C', 'curve_chart', 'current_teplota');
+        }
+
+        // funkce pro kreslení grafu barometrického tlaku
+        function drawBaroTlakChart(csvData, field) {
+            drawGenericChart(csvData, 'Barometrický tlak', ' hPa', 'baroTlak_chart', 'current_baroTlak');
+        }
+
+        // funkce pro kreslení grafu vlhkosti
+        function drawVlhkostChart(csvData, field) {
+            drawGenericChart(csvData, 'Vlhkost', ' %', 'vlhkost_chart', 'current_vlhkost');
+        }
+
+        // funkce pro kreslení karty s názvem zařízení
+        function drawNazevZarizeniCard(csvData, field) {
+            drawNazevZarizeniGenericCard(csvData, 'Název zařízení', 'current_nazev_zarizeni', 6);
+        }
+
+        // funkce pro kreslení karty s názvem WiFi (SSID)
+        function drawSSIDCard(csvData, field) {
+            drawSSIDGenericCard(csvData, 'SSID', 'current_SSID', 7);
+        }
+
+        // funkce pro kreslení karty s nadmořskou výškou
+        function drawNadmorskaVyska(csvData, field) {
+            drawNadmorskaVyskaGenericCard(csvData, 'Nadmořská výška', 'current_nadmorskaVyska', 6);
+        }
+
+        // Funkce pro kreslení karty název zařízení 
+        function drawNazevZarizeniGenericCard(csvData, label, currentElementId, colID) {
+            if (!csvData) return; // kontrola, zda jsou data k dispozici
+
+            const rows = csvData.split('\n').slice(1); // rozdělení dat na řádky
+            const dataRows = rows.map(row => { // převedení řádků na pole dat
+                const columns = row.split(','); // rozdělení řádku na sloupce
+                const time = new Date(columns[5]); // převedení času na objekt "Date"
+                const value = columns[colID]; // získání hodnoty ze sloupce
+                return [time, value]; // vrácení pole s časem a hodnotou
+            }).filter(row => row[0] && row[1]); // filtrace řádků, které mají platný čas a hodnotu
+
+            const currentValue = dataRows[dataRows.length - 1][1]; // Získání aktuální hodnoty
+            document.getElementById(currentElementId).innerHTML = `
+                <div class="number">${currentValue}</div>
+                <div class="number">‎ </div>
+                <div class="description">${label}</div>
+            `;
+        }
+
+        // Funkce pro kreslení karty s názvem SSID
+        function drawSSIDGenericCard(csvData, label, currentElementId, colID) {
+            if (!csvData) return; // kontrola, zda jsou data k dispozici
+
+            const rows = csvData.split('\n').slice(1); // rozdělení dat na řádky
+            const dataRows = rows.map(row => { // převedení řádků na pole dat
+                const columns = row.split(','); // rozdělení řádku na sloupce
+                const time = new Date(columns[5]); // převedení času na objekt "Date"
+                const value = columns[colID]; // získání hodnoty ze sloupce
+                return [time, value]; // vrácení pole s časem a hodnotou
+            }).filter(row => row[0] && row[1]); // filtrace řádků, které mají platný čas a hodnotu
+
+            const currentValue = dataRows[dataRows.length - 1][1]; // Získání aktuální hodnoty
+            document.getElementById(currentElementId).innerHTML = `
+                <div class="number">${currentValue}</div>
+                <div class="description">${label}</div>
+            `;
+        }
+
+        // Funkce pro kreslení karty Aktuální Nadmořská Výška
+        function drawNadmorskaVyskaGenericCard(csvData, label, currentElementId, colID) {
+            if (!csvData) return; // kontrola, zda jsou data k dispozici
+
+            const rows = csvData.split('\n').slice(1); // rozdělení dat na řádky
+            const dataRows = rows.map(row => { // převedení řádků na pole dat
+                const columns = row.split(','); // rozdělení řádku na sloupce
+                const time = new Date(columns[5]); // převedení času na objekt "Date"
+                const value = columns[colID]; // získání hodnoty ze sloupce
+                return [time, value]; // vrácení pole s časem a hodnotou
+            }).filter(row => row[0] && row[1]); // filtrace řádků, které mají platný čas a hodnotu
+
+            const currentValue = dataRows[dataRows.length - 1][1]; // Získání aktuální hodnoty
+            document.getElementById(currentElementId).innerHTML = `
+                <div class="number">${currentValue} m n.m.</div>
+                <div class="number">‎ </div>
+                <div class="description">${label}</div>
+            `;
+        }
+    </script>
+</head>
+
+<body>
+
+    <div class="container-fluid mt-4">
+        <div class="row">
+            <div class="col-lg-4 col-md-6">
+                <div class="card text-white bg-warning mt-3">
+                    <div class="value-card">
+                        <p id="current_nazev_zarizeni" class="m-0"></p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-4 col-md-6">
+                <div class="card text-white bg-secondary mt-3">
+                    <div class="value-card">
+                        <p id="current_SSID" class="m-0"></p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-4 col-md-6">
+                <div class="card text-white bg-info mt-3">
+                    <div class="value-card">
+                        <p id="current_nadmorskaVyska" class="m-0"></p>
+                    </div>
+                </div>
+            </div>                  
+            <div class="col-lg-4 col-md-6">
+                <div class="card">
+                    <div class="card-body">
+                        <div id="curve_chart" style="height: 300px"></div>
+                    </div>
+                </div>
+                <div class="card text-white bg-primary mt-3">
+                    <div class="value-card">
+                        <p id="current_teplota" class="m-0"></p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-4 col-md-6">
+                <div class="card">
+                    <div class="card-body">
+                        <div id="baroTlak_chart" style="height: 300px"></div>
+                    </div>
+                </div>
+                <div class="card text-white bg-success mt-3">
+                    <div class="value-card">
+                        <p id="current_baroTlak" class="m-0"></p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-4 col-md-12">
+                <div class="card">
+                    <div class="card-body">
+                        <div id="vlhkost_chart" style="height: 300px"></div>
+                    </div>
+                </div>
+                <div class="card text-white bg-info mt-3">
+                    <div class="value-card">
+                        <p id="current_vlhkost" class="m-0"></p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.0.6/dist/umd/popper.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+</body>
+
+</html>
